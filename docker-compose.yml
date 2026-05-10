@@ -1,0 +1,90 @@
+# Single-command local stack for the expense-tracker.
+#
+# Self-contained: ships a Mongo container so no host setup is required.
+# Override MONGODB_URI in .env to point at an external Mongo (e.g. Atlas) instead.
+#
+# Usage:
+#   1. (Optional) drop a per-machine JWT_SECRET in .env at the repo root.
+#   2. docker compose up --build
+#   3. Visit http://localhost:3000
+
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      # Exposed on the host so external tools (Compass, mongosh) can connect.
+      # No auth — local dev only. Never expose this on a non-loopback interface.
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: expense-tracker-api:local
+    ports:
+      - "3001:3001"
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/expense-tracker}
+      # In dev, falls back to a known default (≥16 chars). Override JWT_SECRET in
+      # .env or your shell for a per-machine secret. Never use this default in prod.
+      JWT_SECRET: ${JWT_SECRET:-local-dev-only-do-not-use-in-prod-replace-me}
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: "3001"
+      # Comma-separated list of origins allowed to make cross-origin requests
+      # (signup/sign-in/forgot/reset are called by the web app from the browser).
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      # /health is behind AuthBridge — an unauthenticated request returns 401,
+      # which is enough to confirm the server is responding.
+      test:
+        - "CMD-SHELL"
+        - "node -e \"require('http').get('http://localhost:3001/health',r=>{process.exit(r.statusCode===401?0:1)}).on('error',()=>process.exit(1))\""
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* must be present at build time — Next.js inlines it into
+        # the client bundle. Setting it only as a runtime env var has no effect
+        # on browser code. Override in .env or via shell env to point elsewhere.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    image: expense-tracker-web:local
+    ports:
+      - "3000:3000"
+    environment:
+      # Server-side base URL: inside the compose network the api is reachable as http://api:3001.
+      API_BASE_URL: http://api:3001
+      # Browser-side base URL: client components call the api directly from the host.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      # Shared with api so the web entrypoint can mint its own dev JWT AND so NextAuth's
+      # `signAccessToken` produces a JWS the api's AuthBridge can verify.
+      # In dev, falls back to a known default (≥16 chars). Override JWT_SECRET in
+      # .env or your shell for a per-machine secret. Never use this default in prod.
+      JWT_SECRET: ${JWT_SECRET:-local-dev-only-do-not-use-in-prod-replace-me}
+      # NextAuth-specific. NEXTAUTH_SECRET encrypts the JWE session cookie and is REQUIRED
+      # in production mode. Distinct from JWT_SECRET (which signs the backend access token).
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-local-dev-nextauth-secret-replace-me}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NODE_ENV: ${NODE_ENV:-production}
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
