@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build artifacts
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Test artifacts
+coverage/
+.vitest-cache/
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+
+# Fly
+.fly/
+
+# Vercel
+.vercel
+
+# Scratch — issue tracker, PRD, planning notes (not part of the shipped product)
+.scratch/
+requirement-specs.md
+
+# Local Claude Code config
+.claude/
+
+# Plan files
+plan.md

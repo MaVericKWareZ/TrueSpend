@@ -1,0 +1,26 @@
+{
+  "name": "expense-tracker",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter ./packages/** build && pnpm -r --filter ./apps/** build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev:api": "pnpm --filter @expense/api dev",
+    "dev:web": "pnpm --filter @expense/web dev",
+    "issue-dev-jwt": "pnpm --filter @expense/api issue-dev-jwt",
+    "start": "docker compose up --build",
+    "stop": "docker compose down"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,29 @@
+# Don't ship dependencies, build outputs, secrets, or repo metadata into the image.
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+
+# Repo metadata + docs (image doesn't need these)
+.git
+.github
+.scratch
+docs
+*.md
+!apps/api/README.md
+!apps/web/README.md
+
+# Secrets and local-only env
+.env
+.env.local
+.env.*.local
+.fly
+.vercel
+
+# Editor / OS
+.DS_Store
+.idea
+.vscode
