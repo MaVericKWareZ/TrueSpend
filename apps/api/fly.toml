@@ -1,0 +1,24 @@
+# Fly.io config for the expense-tracker backend (NestJS).
+# Region: ap-south-1 (Mumbai) per ADR-0006, co-located with Atlas M0.
+
+app = "expense-tracker-api"
+primary_region = "bom"
+
+[build]
+  dockerfile = "apps/api/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
